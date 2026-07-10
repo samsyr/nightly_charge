@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.json
+!input_price.json
+.git/
+.gitignore
+README.md
+Dockerfile
+.dockerignore
