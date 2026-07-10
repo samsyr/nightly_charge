@@ -4,3 +4,4 @@ __pycache__/
 !input_price.json
 charging.log
 charging.stdout.log
+log/

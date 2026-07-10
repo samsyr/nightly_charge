@@ -28,6 +28,10 @@ orchestration (see [Docker](#running-with-docker) below).
 - `nightly_charge.py` – orchestrator: fetches prices, computes the cheapest
   window, and schedules `start_charge.py` to run at that time via `at`.
   Meant to be run from cron. Logs to `charging.log`.
+- `price_gated_charge.py` – long-running loop alternative to
+  `nightly_charge.py`: for every 15-min spot price slot, starts charging if
+  the price is below a threshold and stops it otherwise, until the battery
+  reaches a target level. Logs to `log/<start-time>.log`.
 - `start_charge.py` / `stop_charge.py` – wake the car and start/stop
   charging immediately via the Tessie API.
 - `get_charging_status.py` – prints the current charging status via Tessie.
@@ -108,6 +112,25 @@ can reshuffle the plan):
 0 17 * * * TESSIE_ACCESS_TOKEN=... TESSIE_VIN=... /usr/bin/python3 /path/to/nightly_charge.py
 0 23 * * * TESSIE_ACCESS_TOKEN=... TESSIE_VIN=... /usr/bin/python3 /path/to/nightly_charge.py
 ```
+
+### Running the price-gated charging loop
+
+An alternative to `nightly_charge.py` that doesn't need `at`/cron: run it
+once (e.g. in the evening, or under `systemd`/`tmux`/`screen`) and it keeps
+charging in sync with the spot price until the battery target is hit, then
+exits. Requires the Tessie environment variables from above.
+
+```bash
+python price_gated_charge.py --max-price-snt-per-kwh 5.0 --max-battery-percent 80
+```
+
+- `--max-price-snt-per-kwh` (default `5.0`) – charging is only allowed while
+  the current 15-minute slot's spot price (snt/kWh, incl. VAT) is below this.
+- `--max-battery-percent` (default `80`) – once the battery reaches this
+  level, charging is stopped and the script exits.
+
+Every check and every start/stop action is logged to STDOUT and to
+`log/<script-start-time>.log`, e.g. `log/2026-07-10T13.50.log`.
 
 ### Checking status / manual control
 
